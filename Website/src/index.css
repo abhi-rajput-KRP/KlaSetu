@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-primary: #3C6E47;
+    --color-primary-hover: #2F5838;
+    --color-primary-light: #EBF3EC;
+    --color-terracotta: #B5652F;
+    --color-terracotta-hover: #985121;
+    --color-accent-bg: #F3E6D3;
+    --color-surface: #FFFDF9;
+    --color-surface-card: #FFFFFF;
+    --color-text-primary: #2B2420;
+    --color-text-secondary: #8A8078;
+    --color-star: #F5B301;
+    --color-discount: #C77B3E;
+    --color-border: #EDE4D6;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #FFFDF9;
+    color: #2B2420;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, .font-serif-heading {
+    font-family: 'Fraunces', Georgia, serif;
+  }
+}
+
+/* Custom scrollbar for filter pills and page */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #F3E6D3;
+}
+::-webkit-scrollbar-thumb {
+  background: #C7B8A4;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #8A8078;
+}
+
+/* Utility classes matching DesignDoc */
+.bg-warm-surface {
+  background-color: #FFFDF9;
+}
+.bg-warm-linen {
+  background-color: #F3E6D3;
+}
+.bg-sage {
+  background-color: #3C6E47;
+}
+.text-sage {
+  color: #3C6E47;
+}
+.border-warm {
+  border-color: #EDE4D6;
+}
+.card-shadow {
+  box-shadow: 0 2px 10px rgba(43, 36, 32, 0.05), 0 1px 3px rgba(43, 36, 32, 0.03);
+}
+.card-shadow-hover:hover {
+  box-shadow: 0 10px 25px -3px rgba(43, 36, 32, 0.08), 0 4px 6px -2px rgba(43, 36, 32, 0.04);
+}
+
+/* Smooth transitions */
+.transition-card {
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
