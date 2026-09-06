@@ -13,13 +13,8 @@ GROQ_API_KEY= os.getenv("GROQ_API_KEY")
 if not FEATHERLESS_API_KEY:
     raise RuntimeError("Missng FEATHERLESS_API_KEY in the environment")
 
-# if not GEMINI_API_KEY:
-#     raise RuntimeError("Missng GEMINI_API_KEY in the environment")
-
-# llm=ChatGoogleGenerativeAI(
-#     model="gemma-4-26b-a4b-it",
-#     google_api_key=GEMINI_API_KEY
-# )
+if not GROQ_API_KEY:
+    raise RuntimeError("Missng GROQ_API_KEY in the environment")
 
 vlm = ChatOpenAI(
     api_key=FEATHERLESS_API_KEY,
@@ -27,12 +22,13 @@ vlm = ChatOpenAI(
     base_url="https://api.featherless.ai/v1",
 )
 
-if not GROQ_API_KEY:
-    raise RuntimeError("Missng GROQ_API_KEY in the environment")
-
 llm = ChatGroq(
     model="openai/gpt-oss-120b",
     temperature=0.3,
     disable_streaming=True,
     reasoning_effort="low"
 )
+
+REMBG_MODEL_NAME = "u2net"
+TARGET_SAMPLE_RATE = 16000
+MODEL_NAME = "ai4bharat/indic-conformer-600m-multilingual"
