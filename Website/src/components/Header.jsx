@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router';
 import { useShop } from '../context/ShopContext';
-import { Search, ShoppingBag, User, Menu, X } from 'lucide-react';
+import { Search, ShoppingBag, User, Menu, X, Sparkles, LogIn } from 'lucide-react';
 
 export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const { cartCount, searchQuery, setSearchQuery } = useShop();
+  const { cartCount, searchQuery, setSearchQuery, user, isArtisan } = useShop();
   const navigate = useNavigate();
 
   const handleSearchSubmit = (e) => {
@@ -24,14 +24,13 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#EDE4D6] bg-[#FFFDF9]/95 backdrop-blur-md transition-all">
-
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-20 items-center justify-between gap-4">
           {/* Brand Logo */}
           <div className="flex items-center gap-8">
             <Link to="/" className="group flex items-center gap-2.5">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#F3E6D3] text-[#3C6E47] transition-transform group-hover:scale-105 border border-[#EDE4D6]">
-                <img src="/favicon.svg" alt="logo" />
+                <img src="/favicon.svg" alt="logo" className="h-6 w-6" />
               </div>
               <div className="flex flex-col">
                 <span className="font-serif-heading text-2xl font-bold tracking-tight text-[#2B2420]">
@@ -47,21 +46,27 @@ export default function Header() {
             <nav className="hidden md:flex items-center gap-6 pl-4">
               <NavLink to="/" className={navLinkClass}>Home</NavLink>
               <NavLink to="/products" className={navLinkClass}>Explore Crafts</NavLink>
-              <NavLink to="/studio" className={navLinkClass}>
-                <span className="inline-flex items-center gap-1.5 font-semibold text-[#3C6E47]">
-                  <span className="h-2 w-2 rounded-full bg-[#3C6E47]"></span>
-                  Artisan Studio
-                </span>
-              </NavLink>
-              <NavLink to="/sellers_page" className={navLinkClass}>
-                <span className="inline-flex items-center gap-1.5 text-[#B5652F] font-semibold">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#B5652F] opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[#B5652F]"></span>
-                  </span>
-                  Sell Your Craft
-                </span>
-              </NavLink>
+
+              {/* ONLY ACCOUNTS OF TYPE ARTISANS SEE ARTISAN STUDIO AND POSTING PAGE */}
+              {isArtisan && (
+                <>
+                  <NavLink to="/studio" className={navLinkClass}>
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-[#3C6E47]">
+                      <span className="h-2 w-2 rounded-full bg-[#3C6E47]"></span>
+                      Artisan Studio
+                    </span>
+                  </NavLink>
+                  <NavLink to="/sellers_page" className={navLinkClass}>
+                    <span className="inline-flex items-center gap-1.5 text-[#B5652F] font-semibold">
+                      <span className="relative flex h-2 w-2">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#B5652F] opacity-75"></span>
+                        <span className="relative inline-flex h-2 w-2 rounded-full bg-[#B5652F]"></span>
+                      </span>
+                      Sell Your Craft
+                    </span>
+                  </NavLink>
+                </>
+              )}
             </nav>
           </div>
 
@@ -100,14 +105,29 @@ export default function Header() {
               <Search size={20} />
             </button>
 
-            {/* Account Icon */}
-            <Link
-              to="/profile"
-              className="flex items-center gap-2 rounded-full border border-[#EDE4D6] px-3 py-1.5 text-sm font-medium text-[#2B2420] hover:bg-[#F3E6D3] transition-colors"
-            >
-              <User size={18} className="text-[#3C6E47]" />
-              <span className="hidden sm:inline">Account</span>
-            </Link>
+            {/* Account Icon / Login state */}
+            {user ? (
+              <Link
+                to="/profile"
+                className="flex items-center gap-2 rounded-full border border-[#EDE4D6] px-3.5 py-1.5 text-xs font-semibold text-[#2B2420] hover:bg-[#F3E6D3] transition-colors"
+              >
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#EBF3EC] text-[#3C6E47] text-[11px] font-bold">
+                  {user.name ? user.name[0].toUpperCase() : 'U'}
+                </div>
+                <span className="hidden sm:inline">{user.name.split(' ')[0]}</span>
+                <span className={`hidden md:inline text-[9px] px-2 py-0.5 rounded-full font-bold ${isArtisan ? 'bg-[#3C6E47] text-white' : 'bg-[#F3E6D3] text-[#B5652F]'}`}>
+                  {isArtisan ? 'Artisan' : 'Buyer'}
+                </span>
+              </Link>
+            ) : (
+              <Link
+                to="/login"
+                className="flex items-center gap-1.5 rounded-full border border-[#EDE4D6] px-3.5 py-1.5 text-xs font-semibold text-[#2B2420] hover:bg-[#F3E6D3] transition-colors"
+              >
+                <LogIn size={15} className="text-[#3C6E47]" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Link>
+            )}
 
             {/* Cart Button */}
             <Link
@@ -170,27 +190,34 @@ export default function Header() {
             >
               Explore Crafts Catalog
             </Link>
-            <Link
-              to="/studio"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#3C6E47] font-semibold flex items-center gap-2"
-            >
-              <span className="h-2 w-2 rounded-full bg-[#3C6E47]"></span>
-              Artisan Studio & Inventory
-            </Link>
-            <Link
-              to="/sellers_page"
-              onClick={() => setMobileMenuOpen(false)}
-              className="text-base font-medium text-[#B5652F] font-semibold"
-            >
-              Sell Your Craft (Artisan Onboarding)
-            </Link>
+
+            {/* ARTISAN ONLY MOBILE LINKS */}
+            {isArtisan && (
+              <>
+                <Link
+                  to="/studio"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-[#3C6E47] font-semibold flex items-center gap-2"
+                >
+                  <span className="h-2 w-2 rounded-full bg-[#3C6E47]"></span>
+                  Artisan Studio & Inventory
+                </Link>
+                <Link
+                  to="/sellers_page"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-base font-medium text-[#B5652F] font-semibold"
+                >
+                  Sell Your Craft (AI Listing Studio)
+                </Link>
+              </>
+            )}
+
             <Link
               to="/profile"
               onClick={() => setMobileMenuOpen(false)}
               className="text-base font-medium text-[#2B2420] hover:text-[#3C6E47]"
             >
-              My Account & Orders
+              My Profile & Orders
             </Link>
             <Link
               to="/cart"

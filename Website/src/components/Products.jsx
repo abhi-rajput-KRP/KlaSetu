@@ -8,7 +8,7 @@ export default function Products() {
   const { products, selectedCategory, setSelectedCategory, searchQuery, setSearchQuery } = useShop();
 
   const [selectedSort, setSelectedSort] = useState('featured');
-  const [priceMax, setPriceMax] = useState(200);
+  const [priceMax, setPriceMax] = useState(5000);
   const [minRating, setMinRating] = useState(0);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -30,7 +30,7 @@ export default function Products() {
           p.maker.toLowerCase().includes(q) ||
           p.material.toLowerCase().includes(q) ||
           p.category.toLowerCase().includes(q) ||
-          p.location.toLowerCase().includes(q)
+          p.location?.toLowerCase().includes(q)
       );
     }
 
@@ -50,7 +50,7 @@ export default function Products() {
     } else if (selectedSort === 'rating') {
       list.sort((a, b) => b.rating - a.rating);
     } else if (selectedSort === 'reviews') {
-      list.sort((a, b) => b.reviewsCount - a.reviewsCount);
+      list.sort((a, b) => (b.reviewsCount || b.reviews_count || 0) - (a.reviewsCount || a.reviews_count || 0));
     }
 
     return list;
@@ -59,7 +59,7 @@ export default function Products() {
   const resetFilters = () => {
     setSelectedCategory('All Crafts');
     setSearchQuery('');
-    setPriceMax(200);
+    setPriceMax(5000);
     setMinRating(0);
     setSelectedSort('featured');
   };
@@ -163,20 +163,20 @@ export default function Products() {
               {/* Max Price Slider */}
               <div>
                 <label className="block text-xs font-bold text-[#2B2420] mb-1">
-                  Max Price: <span className="text-[#3C6E47] font-bold text-sm">${priceMax}</span>
+                  Max Price: <span className="text-[#3C6E47] font-bold text-sm">₹{priceMax}</span>
                 </label>
                 <input
                   type="range"
                   min="20"
-                  max="200"
-                  step="5"
+                  max="5000"
+                  step="50"
                   value={priceMax}
                   onChange={(e) => setPriceMax(Number(e.target.value))}
                   className="w-full accent-[#3C6E47] cursor-pointer"
                 />
                 <div className="flex justify-between text-[11px] text-[#8A8078]">
-                  <span>$20</span>
-                  <span>$200</span>
+                  <span>₹20</span>
+                  <span>₹5,000</span>
                 </div>
               </div>
 

@@ -11,15 +11,11 @@ non-product object is holding, touching, or overlapping the product itself
 (not just present in the background). This matters even when the background
 will be removed, because that hand/arm will remain in the cutout.
 
-For "bg_tone": only relevant when needs_bg_removal is true. Pick whichever tone
-will contrast well with the product. For metal items choose 'black' unless the piece itself is dark —
-in that case prefer a light neutral instead so the piece doesn't disappear.
+For "bg_tone": pick a tone that contrasts well with the product ('white', 'light_gray', 'cool_gray', 'warm_beige', 'charcoal', or 'black'). For metal items prefer 'black' unless the item is dark. Always output a valid tone (use 'white' by default).
 
-For "lighting_severity": "none" if lighting already looks even and well-lit,
-"severe" only if it's badly patchy or very dark/harsh.
+For "lighting_severity": "none" if lighting is already even and well-lit, "mild", "moderate", or "severe" only if badly patchy or very dark.
 
-set_reflection: true If the product in the image is metal item with no 
-extraneous_subject in the background. Also set the image bg_tone to black.
+For "set_reflection": true if the product is a polished or reflective metal item with no extraneous subjects in foreground.
 """
 
 

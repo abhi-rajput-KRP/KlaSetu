@@ -18,7 +18,7 @@ import {
 import { Link } from 'react-router';
 
 export default function Product() {
-  const { selectedProduct, products, addToCart, toggleWishlist, wishlist } = useShop();
+  const { selectedProduct, products, addToCart, toggleWishlist, wishlist, getImageUrl } = useShop();
 
   const product = selectedProduct || products[0];
   const [activeImage, setActiveImage] = useState(0);
@@ -55,7 +55,7 @@ export default function Product() {
             {/* Main Featured Photo */}
             <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-[#EDE4D6] bg-[#F3E6D3] shadow-xs">
               <img
-                src={galleryImages[activeImage] || product.image}
+                src={getImageUrl(galleryImages[activeImage] || product.image)}
                 alt={product.name}
                 className="h-full w-full object-cover transition-all duration-300"
               />
@@ -129,14 +129,14 @@ export default function Product() {
 
               {/* Price block */}
               <div className="mt-6 flex items-baseline gap-3 rounded-2xl bg-[#F3E6D3]/40 border border-[#EDE4D6] p-4">
-                <span className="text-3xl font-bold text-[#3C6E47]">${product.price}</span>
+                <span className="text-3xl font-bold text-[#3C6E47]">₹{product.price}</span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <>
                     <span className="text-base text-[#8A8078] line-through font-normal">
-                      ${product.originalPrice}
+                      ₹{product.originalPrice}
                     </span>
                     <span className="rounded-full bg-[#C77B3E] px-2.5 py-0.5 text-xs font-bold text-white">
-                      Save ${(product.originalPrice - product.price).toFixed(0)} ({Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% off)
+                      Save ₹{(product.originalPrice - product.price).toFixed(0)} ({Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% off)
                     </span>
                   </>
                 )}
@@ -190,7 +190,7 @@ export default function Product() {
                   className="flex-1 inline-flex items-center justify-center gap-2 rounded-full bg-[#3C6E47] px-7 py-3.5 text-sm font-bold text-[#FFFDF9] shadow-md transition-all hover:bg-[#2F5838] active:scale-98"
                 >
                   <ShoppingBag size={18} />
-                  <span>Add to Cart • ${(product.price * quantity).toFixed(2)}</span>
+                  <span>Add to Cart • ₹{(product.price * quantity).toFixed(2)}</span>
                 </button>
 
                 {/* Wishlist Button */}
@@ -302,7 +302,7 @@ export default function Product() {
               <div className="max-w-3xl space-y-3">
                 <h3 className="font-serif-heading text-xl font-bold text-[#3C6E47]">Direct-to-Artisan Transparency</h3>
                 <p className="text-[#8A8078]">
-                  KlaSetu operates on radical revenue transparency. For every purchase of this product, ${((product.price * 0.85)).toFixed(2)} is transferred directly to {product.maker} without intermediary cuts.
+                  KlaSetu operates on radical revenue transparency. For every purchase of this product, ₹{((product.price * 0.85)).toFixed(2)} is transferred directly to {product.maker} without intermediary cuts.
                 </p>
               </div>
             )}

@@ -5,40 +5,31 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
-    "scheme": "artisanmarket",
+    "newArchEnabled": false,
     "splash": {
-      "image": "./assets/images/Gemini_Generated_Image_82t62z82t62z82t6.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#FBF8F2"
+      "backgroundColor": "#F3E6D3",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.klasetu.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#F3E6D3"
+      },
+      "package": "com.klasetu.app"
     },
     "plugins": [
+      "expo-asset",
+      "expo-status-bar",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Artisan Market to access photos so artisans can add product images.",
-          "cameraPermission": "Allow Artisan Market to use the camera so artisans can photograph products.",
-          "microphonePermission": "Allow Artisan Market to use the microphone for product audio descriptions."
+          "photosPermission": "KlaSetu requires access to your photos to upload craft images.",
+          "cameraPermission": "KlaSetu requires access to your camera to take craft photos."
         }
-      ],
-      "expo-audio",
-      [
-        "expo-splash-screen",
-        {
-          "backgroundColor": "#232323",
-          "image": "./assets/images/Gemini_Generated_Image_82t62z82t62z82t6.png",
-          "dark": {
-            "image": "./assets/images/Gemini_Generated_Image_82t62z82t62z82t6.png",
-            "backgroundColor": "#000000"
-          },
-          "imageWidth": 200
-        }
-      ]      
-    ],
-    "android": {
-      "package": "com.example.artisanmarket",
-      "adaptiveIcon": {
-        "backgroundColor": "#F3E6D3"
-      }
-    }
+      ]
+    ]
   }
 }

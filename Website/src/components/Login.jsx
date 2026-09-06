@@ -1,33 +1,60 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
-import { Lock, Mail, ArrowRight, Sparkles } from "lucide-react";
+import { Lock, Mail, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
+import { useShop } from "../context/ShopContext";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useShop();
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    navigate("/profile");
+    setError("");
+    setLoading(true);
+
+    try {
+      const loggedUser = await login(email, password);
+      if (loggedUser?.user_type === "artisan") {
+        navigate("/studio");
+      } else {
+        navigate("/profile");
+      }
+    } catch (err) {
+      console.error("Login error:", err);
+      const detail = err.response?.data?.detail || "Invalid email or password. Please check and try again.";
+      setError(detail);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="flex min-h-[80vh] flex-col justify-center px-4 py-12 sm:px-6 lg:px-8 bg-[#FFFDF9]">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F3E6D3] text-[#3C6E47] border border-[#EDE4D6] shadow-xs">
-          <img src="/favicon.svg" alt="logo" />
+          <img src="/favicon.svg" alt="logo" className="h-7 w-7" />
         </div>
         <h2 className="mt-4 text-center font-serif-heading text-3xl font-bold tracking-tight text-[#2B2420]">
           Welcome back to KlaSetu
         </h2>
         <p className="mt-2 text-center text-xs sm:text-sm text-[#8A8078]">
-          Sign in to access your craft orders and saved artisan collections
+          Sign in to access your craft studio, orders, and saved artisan collections
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="rounded-3xl border border-[#EDE4D6] bg-[#FFFDF9] p-8 card-shadow">
+          {error && (
+            <div className="mb-5 flex items-center gap-2 rounded-2xl bg-red-50 border border-red-200 p-3.5 text-xs font-semibold text-red-700">
+              <AlertCircle size={16} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
           <form onSubmit={handleLogin} className="space-y-5">
             <div>
               <label htmlFor="email" className="block text-xs font-bold text-[#2B2420]">
@@ -38,7 +65,7 @@ export default function Login() {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="example@example.com"
+                  placeholder="artisan@example.com"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -71,10 +98,20 @@ export default function Login() {
 
             <button
               type="submit"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#3C6E47] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-[#2F5838] active:scale-98"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#3C6E47] py-3 text-sm font-bold text-white shadow-md transition-all hover:bg-[#2F5838] active:scale-98 disabled:opacity-60"
             >
-              <span>Sign In to Account</span>
-              <ArrowRight size={16} />
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign In to Account</span>
+                  <ArrowRight size={16} />
+                </>
+              )}
             </button>
           </form>
 

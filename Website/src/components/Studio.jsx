@@ -44,8 +44,55 @@ export default function Studio() {
     updateStoreProfile,
     orders,
     updateOrderStatus,
-    showToast
+    showToast,
+    user,
+    isArtisan,
   } = useShop();
+
+  // Role guard: Only accounts of type artisan can view Artisan Studio
+  if (!user || !isArtisan) {
+    return (
+      <div className="flex min-h-[75vh] flex-col items-center justify-center px-4 py-16 bg-[#FFFDF9]">
+        <div className="mx-auto max-w-md text-center rounded-3xl border border-[#EDE4D6] bg-white p-8 card-shadow space-y-5">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#F3E6D3] text-[#B5652F] border border-[#EDE4D6]">
+            <Store size={32} />
+          </div>
+          <div className="space-y-2">
+            <span className="inline-block rounded-full bg-[#F3E6D3] px-3 py-1 text-[11px] font-bold text-[#B5652F] uppercase tracking-wider">
+              Artisan Guild Portal
+            </span>
+            <h2 className="font-serif-heading text-2xl font-bold text-[#2B2420]">
+              Artisan Studio Restricted
+            </h2>
+            <p className="text-xs sm:text-sm text-[#8A8078] leading-relaxed">
+              The Artisan Studio & Inventory Manager is exclusively accessible to registered craftspeople and workshop accounts.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col gap-2.5">
+            <Link
+              to="/register"
+              className="flex w-full items-center justify-center gap-2 rounded-full bg-[#B5652F] py-3 text-xs sm:text-sm font-bold text-white shadow hover:bg-[#9B5324] transition-all"
+            >
+              <span>Register as an Artisan / Seller</span>
+            </Link>
+            <Link
+              to="/login"
+              className="flex w-full items-center justify-center rounded-full border border-[#EDE4D6] bg-white py-3 text-xs sm:text-sm font-bold text-[#2B2420] hover:bg-[#F3E6D3] transition-colors"
+            >
+              Sign In to Artisan Account
+            </Link>
+            <Link
+              to="/products"
+              className="text-xs text-[#8A8078] hover:text-[#3C6E47] pt-2"
+            >
+              ← Return to Crafts Catalog
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Navigation tabs
   const [activeTab, setActiveTab] = useState('inventory'); // 'inventory', 'products', 'store', 'orders', 'ai-assist'
@@ -262,7 +309,7 @@ export default function Studio() {
       description: `Handcrafted from ethically gathered ${aiMaterial}, this authentic heirloom item is sculpted in ${aiRegion} following generations-old ancestral craft traditions. Each contour reflects the artisan's patient dedication to zero-waste, slow-made art.`,
       story: `In the heart of ${aiRegion}, master craft guilds shape every piece by hand on ancestral workstations without electric molds. Fired using solar & organic kiln techniques, this artifact celebrates natural earthen textures and timeless cultural reverence.`,
       tags: ['#ArtisanCraft', '#HeritageArt', '#EcoFriendly', '#SlowLiving', '#FairTradeCraft'],
-      suggestedPrice: '$58 - $72',
+      suggestedPrice: '₹58 - ₹72',
     });
     setAiGenerating(false);
   };
@@ -280,11 +327,6 @@ export default function Studio() {
         <div className="relative overflow-hidden rounded-3xl border border-[#EDE4D6] bg-white shadow-sm mb-8">
           {/* Studio Banner Image Header */}
           <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-[#2B2420]">
-            <img
-              src={storeProfile?.coverImage}
-              alt="Artisan Studio Banner"
-              className="h-full w-full object-cover opacity-85"
-            />
             <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent" />
             
             {/* Quick Status Badge */}
@@ -305,7 +347,7 @@ export default function Studio() {
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 -mt-14 sm:-mt-16">
               
               {/* Avatar and Identity */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-5">
+              <div className="flex flex-col mt-5 sm:flex-row items-start sm:items-end gap-5">
                 <div className="relative">
                   <img
                     src={storeProfile?.avatarImage}
@@ -419,7 +461,7 @@ export default function Studio() {
             </div>
             <div className="mt-2">
               <span className="text-2xl sm:text-3xl font-bold text-[#2B2420] font-serif-heading">
-                ${totalInventoryValuation.toLocaleString()}
+                ₹{totalInventoryValuation.toLocaleString()}
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#3C6E47]">
@@ -479,7 +521,7 @@ export default function Studio() {
               <span className="text-xs text-[#8A8078]">orders to dispatch</span>
             </div>
             <div className="mt-2 text-[11px] text-[#3C6E47] font-medium">
-              Total sales: ${totalRevenueMock.toLocaleString()}
+              Total sales: ₹{totalRevenueMock.toLocaleString()}
             </div>
           </div>
         </div>
@@ -729,7 +771,7 @@ export default function Studio() {
                             <td className="px-5 py-4">
                               <div className="flex items-center gap-3">
                                 <img
-                                  src={item.image}
+                                  src={"http://127.0.0.1:8000"+item.image}
                                   alt={item.name}
                                   className="h-12 w-12 rounded-xl object-cover border border-[#EDE4D6] bg-[#F3E6D3] shrink-0"
                                 />
@@ -764,10 +806,10 @@ export default function Studio() {
 
                             {/* Price */}
                             <td className="px-4 py-4">
-                              <div className="font-bold text-[#2B2420]">${item.price}</div>
+                              <div className="font-bold text-[#2B2420]">₹{item.price}</div>
                               {item.originalPrice && item.originalPrice > item.price && (
                                 <div className="text-[10px] text-[#8A8078] line-through">
-                                  ${item.originalPrice}
+                                  ₹{item.originalPrice}
                                 </div>
                               )}
                             </td>
@@ -829,7 +871,7 @@ export default function Studio() {
 
                             {/* Valuation */}
                             <td className="px-4 py-4 font-bold text-[#2B2420]">
-                              ${lineVal.toLocaleString()}
+                              ₹{lineVal.toLocaleString()}
                             </td>
 
                             {/* Actions */}
@@ -876,7 +918,7 @@ export default function Studio() {
                 </span>
                 <div className="flex items-center gap-4 mt-2 sm:mt-0 font-medium">
                   <span>Filtered Units: <strong>{filteredInventory.reduce((s, i) => s + (Number(i.inStock) || 0), 0)}</strong></span>
-                  <span>Filtered Value: <strong>${filteredInventory.reduce((s, i) => s + (Number(i.inStock) || 0) * (Number(i.price) || 0), 0).toLocaleString()}</strong></span>
+                  <span>Filtered Value: <strong>₹{filteredInventory.reduce((s, i) => s + (Number(i.inStock) || 0) * (Number(i.price) || 0), 0).toLocaleString()}</strong></span>
                 </div>
               </div>
             </div>
@@ -918,7 +960,7 @@ export default function Studio() {
                     {/* Craft Photo with badge */}
                     <div className="relative aspect-square w-full overflow-hidden bg-[#F3E6D3]">
                       <img
-                        src={item.image}
+                        src={"http://127.0.0.1:8000"+item.image}
                         alt={item.name}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                       />
@@ -957,10 +999,10 @@ export default function Studio() {
 
                       <div className="mt-3 flex items-center justify-between border-t border-[#EDE4D6] pt-3 text-xs">
                         <div>
-                          <span className="text-base font-bold text-[#2B2420]">${item.price}</span>
+                          <span className="text-base font-bold text-[#2B2420]">₹{item.price}</span>
                           {item.originalPrice && item.originalPrice > item.price && (
                             <span className="ml-1.5 text-xs text-[#8A8078] line-through">
-                              ${item.originalPrice}
+                              ₹{item.originalPrice}
                             </span>
                           )}
                         </div>
@@ -1169,7 +1211,7 @@ export default function Studio() {
                   type="text"
                   value={storeForm.announcement}
                   onChange={(e) => setStoreForm({ ...storeForm, announcement: e.target.value })}
-                  placeholder="e.g. Free handloom coaster set on orders above $80..."
+                  placeholder="e.g. Free handloom coaster set on orders above ₹800..."
                   className="w-full rounded-xl border border-[#EDE4D6] bg-white py-2 px-3 text-xs text-[#2B2420] focus:border-[#3C6E47] focus:outline-none"
                 />
               </div>
@@ -1576,7 +1618,7 @@ export default function Studio() {
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 bg-[#F3E6D3]/30 p-3.5 rounded-2xl border border-[#EDE4D6]">
                 <div>
                   <label className="block text-xs font-bold text-[#2B2420] mb-1">
-                    Selling Price ($) *
+                    Selling Price (₹) *
                   </label>
                   <input
                     type="number"
@@ -1590,7 +1632,7 @@ export default function Studio() {
 
                 <div>
                   <label className="block text-xs font-bold text-[#2B2420] mb-1">
-                    Original Price ($)
+                    Original Price (₹)
                   </label>
                   <input
                     type="number"

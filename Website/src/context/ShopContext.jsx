@@ -1,18 +1,8 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { ARTISAN_PRODUCTS } from '../data/productsData';
+import { authAPI, marketAPI, getImageUrl } from '../utils/Backend';
 
 const ShopContext = createContext();
-
-// Enrich initial products with SKUs and stock metadata for Studio management
-const INITIAL_PRODUCTS = ARTISAN_PRODUCTS.map((p, idx) => ({
-  ...p,
-  sku: `KS-${p.category.slice(0, 3).toUpperCase()}-${String(idx + 101).padStart(3, '0')}`,
-  inStock: typeof p.inStock === 'number' ? p.inStock : 12,
-  minThreshold: 5,
-  status: (p.inStock ?? 12) > 0 ? 'active' : 'out_of_stock',
-  costPrice: Math.round(p.price * 0.45),
-  salesCount: Math.floor(Math.random() * 40) + 15,
-}));
 
 const INITIAL_STORE_PROFILE = {
   storeName: "Kiln & Loom Heritage Atelier",
@@ -26,7 +16,7 @@ const INITIAL_STORE_PROFILE = {
   reviewsCount: 348,
   verifiedBadge: "GI Tag Certified Master Artisan",
   giTagNumber: "GI-IN-UP-2024-883",
-  announcement: "🌿 Festive Autumn Craft Drop: Complimentary organic packaging & signed certificates on all orders over $75!",
+  announcement: "🌿 Festive Autumn Craft Drop: Complimentary organic packaging & signed certificates on all orders over ₹750!",
   announcementActive: true,
   isOpen: true,
   leadTime: "1-3 business days",
@@ -38,94 +28,169 @@ const INITIAL_STORE_PROFILE = {
   avatarImage: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80",
 };
 
-const INITIAL_ORDERS = [
-  {
-    id: "ORD-89421",
-    customer: "Helene Engels",
-    email: "helene.engels@example.com",
-    city: "Mumbai, Maharashtra",
-    items: [
-      { id: 2, name: "Hand-Loomed Merino & Raw Silk Throw Blanket", quantity: 1, price: 110 }
-    ],
-    total: 110,
-    status: "In Transit",
-    date: "Sep 02, 2026",
-    trackingId: "BLUEDART-882319",
-  },
-  {
-    id: "ORD-89419",
-    customer: "Aarav Sharma",
-    email: "aarav.s@example.com",
-    city: "Bengaluru, Karnataka",
-    items: [
-      { id: 1, name: "Hand-Thrown Stoneware Vase with Speckled Ash Glaze", quantity: 2, price: 48 }
-    ],
-    total: 96,
-    status: "Processing",
-    date: "Sep 04, 2026",
-    trackingId: "PENDING",
-  },
-  {
-    id: "ORD-89410",
-    customer: "Sophia Rossi",
-    email: "s.rossi@milano.it",
-    city: "New Delhi (International)",
-    items: [
-      { id: 4, name: "Lost-Wax Cast Brass Dhokra Peacock Figurine", quantity: 1, price: 68 },
-      { id: 5, name: "Braided Vegetable-Tanned Leather Coasters", quantity: 1, price: 32 }
-    ],
-    total: 100,
-    status: "Ready to Ship",
-    date: "Sep 05, 2026",
-    trackingId: "DHL-901423",
-  },
-  {
-    id: "ORD-89392",
-    customer: "Vikramaditya Roy",
-    email: "vikram.roy@heritage.in",
-    city: "Kolkata, West Bengal",
-    items: [
-      { id: 6, name: "Jaipur Blue Pottery Hand-Painted Floral Serving Bowl", quantity: 1, price: 42 }
-    ],
-    total: 42,
-    status: "Delivered",
-    date: "Aug 29, 2026",
-    trackingId: "SPEEDPOST-441209",
-  }
-];
-
 export function ShopProvider({ children }) {
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  // Auth state
+  const [token, setToken] = useState(() => localStorage.getItem('klasetu_token') || null);
+  const [user, setUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  // Products & Orders state
+  const [products, setProducts] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [storeProfile, setStoreProfile] = useState(INITIAL_STORE_PROFILE);
-  const [orders, setOrders] = useState(INITIAL_ORDERS);
-  const [wishlist, setWishlist] = useState([1, 4]);
+  const [orders, setOrders] = useState([]);
 
-  // Initial cart with items
-  const [cart, setCart] = useState([
-    {
-      id: 1,
-      item: INITIAL_PRODUCTS[0],
-      quantity: 1,
-    },
-    {
-      id: 5,
-      item: INITIAL_PRODUCTS[4],
-      quantity: 5,
-    },
-  ]);
-
+  // Shopping state
+  const [wishlist, setWishlist] = useState([]);
+  const [cart, setCart] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Crafts');
-  const [selectedProduct, setSelectedProduct] = useState(INITIAL_PRODUCTS[0]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (message) => {
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage(null);
-    }, 3000);
+    }, 3200);
   };
 
+  // Helper for checking if logged in user is an artisan
+  const isArtisan = user?.user_type === 'artisan';
+
+  // 1. Load User on mount if token exists
+  useEffect(() => {
+    const fetchUser = async () => {
+      const storedToken = localStorage.getItem('klasetu_token');
+      if (storedToken) {
+        try {
+          const userData = await authAPI.getMe();
+          setUser(userData);
+          if (userData.store_name) {
+            setStoreProfile((prev) => ({
+              ...prev,
+              storeName: userData.store_name,
+              artisanName: userData.name,
+              location: userData.location || prev.location,
+              categorySpecialty: userData.craft_discipline || prev.categorySpecialty,
+              bio: userData.bio || prev.bio,
+            }));
+          }
+        } catch (err) {
+          console.warn("Session expired or invalid token:", err);
+          localStorage.removeItem('klasetu_token');
+          setToken(null);
+          setUser(null);
+        }
+      }
+      setLoadingUser(false);
+    };
+
+    fetchUser();
+  }, [token]);
+
+  // 2. Fetch Products from Backend
+  const fetchProducts = useCallback(async () => {
+    setLoadingProducts(true);
+    try {
+      const backendProds = await marketAPI.getProducts();
+      if (backendProds && Array.isArray(backendProds)) {
+        const mapped = backendProds.map((p, idx) => ({
+          ...p,
+          sku: `KS-${(p.category || 'GEN').slice(0, 3).toUpperCase()}-${String(idx + 101).padStart(3, '0')}`,
+          costPrice: Math.round((p.price || 50) * 0.45),
+          salesCount: 0,
+        }));
+        setProducts(mapped);
+        if (mapped[0]) setSelectedProduct(mapped[0]);
+        else setSelectedProduct(null);
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.warn("Backend products fetch error:", err);
+      setProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // 3. Fetch Orders from Backend
+  const fetchOrders = useCallback(async () => {
+    const storedToken = localStorage.getItem('klasetu_token');
+    if (!storedToken) return;
+
+    try {
+      const backendOrders = await marketAPI.getOrders();
+      if (backendOrders) {
+        setOrders(backendOrders);
+      }
+    } catch (err) {
+      console.warn("Backend orders fetch error:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchOrders();
+    }
+  }, [user, fetchOrders]);
+
+  // ==================== AUTH HANDLERS ====================
+  const login = async (email, password) => {
+    const data = await authAPI.login(email, password);
+    localStorage.setItem('klasetu_token', data.access_token);
+    setToken(data.access_token);
+    setUser(data.user);
+    if (data.user.store_name) {
+      setStoreProfile((prev) => ({
+        ...prev,
+        storeName: data.user.store_name,
+        artisanName: data.user.name,
+        location: data.user.location || prev.location,
+        categorySpecialty: data.user.craft_discipline || prev.categorySpecialty,
+      }));
+    }
+    showToast(`Welcome back, ${data.user.name}!`);
+    return data.user;
+  };
+
+  const register = async (userData) => {
+    const data = await authAPI.register(userData);
+    localStorage.setItem('klasetu_token', data.access_token);
+    setToken(data.access_token);
+    setUser(data.user);
+    if (data.user.store_name) {
+      setStoreProfile((prev) => ({
+        ...prev,
+        storeName: data.user.store_name,
+        artisanName: data.user.name,
+      }));
+    }
+    showToast(`Account created! Welcome to KlaSetu, ${data.user.name}`);
+    return data.user;
+  };
+
+  const logout = async () => {
+    await authAPI.logout();
+    localStorage.removeItem('klasetu_token');
+    setToken(null);
+    setUser(null);
+    showToast("Signed out successfully");
+  };
+
+  const updateUserProfile = async (profileData) => {
+    const updated = await authAPI.updateProfile(profileData);
+    setUser(updated);
+    showToast("Profile updated successfully");
+    return updated;
+  };
+
+  // ==================== CART & WISHLIST ====================
   const addToCart = (product, quantity = 1) => {
     setCart((prevCart) => {
       const existing = prevCart.find((ci) => ci.id === product.id);
@@ -136,7 +201,7 @@ export function ShopProvider({ children }) {
       }
       return [...prevCart, { id: product.id, item: product, quantity }];
     });
-    showToast(`Added "${product.name.slice(0, 26)}..." to cart!`);
+    showToast(`Added "${product.name.slice(0, 24)}..." to cart!`);
   };
 
   const updateQuantity = (productId, delta) => {
@@ -150,13 +215,15 @@ export function ShopProvider({ children }) {
           return ci;
         })
         .filter(Boolean)
-      );
+    );
   };
 
   const removeFromCart = (productId) => {
     setCart((prevCart) => prevCart.filter((ci) => ci.id !== productId));
     showToast('Item removed from cart');
   };
+
+  const clearCart = () => setCart([]);
 
   const toggleWishlist = (productId) => {
     setWishlist((prev) => {
@@ -170,60 +237,71 @@ export function ShopProvider({ children }) {
     });
   };
 
-  // Studio Inventory & Product Handlers
-  const addProduct = (newProd) => {
-    const nextId = Math.max(...products.map((p) => p.id), 0) + 1;
-    const catCode = (newProd.category || 'GEN').slice(0, 3).toUpperCase();
-    const productToAdd = {
-      ...newProd,
-      id: nextId,
-      sku: newProd.sku || `KS-${catCode}-${String(nextId).padStart(3, '0')}`,
-      rating: newProd.rating || 5.0,
-      reviewsCount: newProd.reviewsCount || 0,
-      badge: newProd.badge || 'New Craft',
-      isFeatured: newProd.isFeatured ?? true,
-      inStock: Number(newProd.inStock) || 1,
-      minThreshold: Number(newProd.minThreshold) || 5,
-      costPrice: Number(newProd.costPrice) || Math.round((Number(newProd.price) || 50) * 0.45),
-      status: (Number(newProd.inStock) || 1) > 0 ? 'active' : 'out_of_stock',
-      gallery: newProd.gallery?.length ? newProd.gallery : [newProd.image || 'https://images.unsplash.com/photo-1612196808214-b8e1d6145a8c?auto=format&fit=crop&w=800&q=80'],
-    };
-
-    setProducts((prev) => [productToAdd, ...prev]);
-    showToast(`Craft "${productToAdd.name.slice(0, 24)}..." published to store!`);
-    return productToAdd;
+  // ==================== MARKETPLACE / STUDIO ACTIONS ====================
+  const addProduct = async (newProd) => {
+    try {
+      const created = await marketAPI.createProduct(newProd);
+      const enriched = {
+        ...created,
+        sku: `KS-${(created.category || 'GEN').slice(0, 3).toUpperCase()}-${String(products.length + 101).padStart(3, '0')}`,
+        costPrice: Math.round((created.price || 50) * 0.45),
+        salesCount: 0,
+      };
+      setProducts((prev) => [enriched, ...prev]);
+      showToast(`Craft "${enriched.name.slice(0, 24)}..." published to store!`);
+      return enriched;
+    } catch (err) {
+      console.error("Failed to add product to backend:", err);
+      // Fallback local addition if backend failed
+      const nextId = Math.max(...products.map((p) => (typeof p.id === 'number' ? p.id : 0)), 0) + 1;
+      const localProd = { ...newProd, id: nextId };
+      setProducts((prev) => [localProd, ...prev]);
+      showToast(`Craft published locally!`);
+      return localProd;
+    }
   };
 
-  const updateProduct = (productId, updatedFields) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          const merged = { ...p, ...updatedFields };
-          if (typeof updatedFields.inStock === 'number') {
-            merged.status = updatedFields.inStock > 0 ? 'active' : 'out_of_stock';
-          }
-          return merged;
-        }
-        return p;
-      })
-    );
-    showToast('Craft details updated successfully');
+  const updateProduct = async (productId, updatedFields) => {
+    try {
+      const updated = await marketAPI.updateProduct(productId, updatedFields);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, ...updated } : p))
+      );
+      showToast('Craft details updated successfully');
+    } catch (err) {
+      console.error("Backend update product failed:", err);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, ...updatedFields } : p))
+      );
+      showToast('Craft updated locally');
+    }
   };
 
-  const deleteProduct = (productId) => {
+  const deleteProduct = async (productId) => {
+    try {
+      await marketAPI.deleteProduct(productId);
+    } catch (err) {
+      console.warn("Backend delete product fallback:", err);
+    }
     setProducts((prev) => prev.filter((p) => p.id !== productId));
     setCart((prev) => prev.filter((ci) => ci.id !== productId));
     showToast('Product removed from catalog');
   };
 
-  const updateStock = (productId, newStock) => {
+  const updateStock = async (productId, newStock) => {
     const stockVal = Math.max(0, Number(newStock) || 0);
+    try {
+      await marketAPI.updateStock(productId, stockVal);
+    } catch (err) {
+      console.warn("Backend stock update fallback:", err);
+    }
     setProducts((prev) =>
       prev.map((p) =>
         p.id === productId
           ? {
               ...p,
               inStock: stockVal,
+              in_stock: stockVal,
               status: stockVal > 0 ? 'active' : 'out_of_stock',
             }
           : p
@@ -233,31 +311,54 @@ export function ShopProvider({ children }) {
   };
 
   const adjustStock = (productId, delta) => {
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === productId) {
-          const updated = Math.max(0, (p.inStock || 0) + delta);
-          return {
-            ...p,
-            inStock: updated,
-            status: updated > 0 ? 'active' : 'out_of_stock',
-          };
-        }
-        return p;
-      })
+    const p = products.find((prod) => prod.id === productId);
+    if (!p) return;
+    const currentStock = p.inStock ?? p.in_stock ?? 0;
+    const newStock = Math.max(0, currentStock + delta);
+    updateStock(productId, newStock);
+  };
+
+  // Orders Actions
+  const placeOrder = async (orderData) => {
+    try {
+      const created = await marketAPI.createOrder(orderData);
+      setOrders((prev) => [created, ...prev]);
+      clearCart();
+      showToast(`Order #${created.id} placed successfully!`);
+      return created;
+    } catch (err) {
+      console.error("Failed to place order:", err);
+      // Fallback local order
+      const localId = `KS-ORD-${Math.floor(10000 + Math.random() * 90000)}`;
+      const localOrder = {
+        ...orderData,
+        id: localId,
+        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        status: 'Processing',
+        trackingId: `INDPOST-${Math.floor(100000 + Math.random() * 900000)}`,
+      };
+      setOrders((prev) => [localOrder, ...prev]);
+      clearCart();
+      showToast(`Order #${localId} placed!`);
+      return localOrder;
+    }
+  };
+
+  const updateOrderStatus = async (orderId, newStatus, trackingId) => {
+    try {
+      await marketAPI.updateOrderStatus(orderId, newStatus, trackingId);
+    } catch (err) {
+      console.warn("Backend order status update fallback:", err);
+    }
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus, tracking_id: trackingId || o.tracking_id } : o))
     );
+    showToast(`Order ${orderId} updated to "${newStatus}"`);
   };
 
   const updateStoreProfile = (newFields) => {
     setStoreProfile((prev) => ({ ...prev, ...newFields }));
     showToast('Store settings saved successfully!');
-  };
-
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
-    );
-    showToast(`Order ${orderId} updated to "${newStatus}"`);
   };
 
   const cartCount = cart.length;
@@ -266,8 +367,22 @@ export function ShopProvider({ children }) {
   return (
     <ShopContext.Provider
       value={{
+        // Auth
+        token,
+        user,
+        isArtisan,
+        loadingUser,
+        login,
+        register,
+        logout,
+        updateUserProfile,
+        // Catalog & Shopping
         products,
+        loadingProducts,
+        fetchProducts,
         cart,
+        cartCount,
+        cartSubtotal,
         searchQuery,
         setSearchQuery,
         selectedCategory,
@@ -277,28 +392,30 @@ export function ShopProvider({ children }) {
         addToCart,
         updateQuantity,
         removeFromCart,
-        cartCount,
-        cartSubtotal,
+        clearCart,
         wishlist,
         toggleWishlist,
-        // Studio & Inventory extensions
+        // Studio & Orders
         storeProfile,
         updateStoreProfile,
         orders,
+        fetchOrders,
+        placeOrder,
         updateOrderStatus,
         addProduct,
         updateProduct,
         deleteProduct,
         updateStock,
         adjustStock,
+        getImageUrl,
         showToast,
       }}
     >
       {children}
       {/* Global Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-[#2B2420] px-5 py-3 text-sm font-medium text-[#FFFDF9] shadow-xl transition-all animate-bounce">
-          <span className="flex h-2 w-2 rounded-full bg-[#3C6E47]"></span>
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-full bg-[#2B2420] px-5 py-3 text-sm font-medium text-[#FFFDF9] shadow-xl transition-all">
+          <span className="flex h-2.5 w-2.5 rounded-full bg-[#3C6E47] animate-ping"></span>
           <span>{toastMessage}</span>
         </div>
       )}
@@ -313,4 +430,3 @@ export function useShop() {
   }
   return context;
 }
-

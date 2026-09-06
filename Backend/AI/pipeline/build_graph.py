@@ -17,8 +17,23 @@ from transformers import AutoModel
 from huggingface_hub import login
 import io
 import os
+import shutil
+import subprocess
+from typing import Union
 
-os.add_dll_directory(r"C:\Users\ABHI RAJPUT\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build\bin")
+ffmpeg_dll_dir = r"C:\Users\ABHI RAJPUT\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build\bin"
+if hasattr(os, "add_dll_directory") and os.path.isdir(ffmpeg_dll_dir):
+    try:
+        os.add_dll_directory(ffmpeg_dll_dir)
+    except Exception:
+        pass
+
+FFMPEG_CANDIDATE_PATHS = [
+    shutil.which("ffmpeg"),
+    os.path.join(ffmpeg_dll_dir, "ffmpeg.exe"),
+    r"C:\ffmpeg\bin\ffmpeg.exe",
+]
+FFMPEG_BIN = next((p for p in FFMPEG_CANDIDATE_PATHS if p and os.path.isfile(p)), "ffmpeg")
 
 load_dotenv()
 
@@ -26,12 +41,14 @@ CLAHE_CLIP_BY_SEVERITY = {"none": 1.0, "mild": 1.5, "moderate": 2.5, "severe": 4
 
 BG_COLOR_BY_TONE = {
     "white": (250, 250, 250),
+    "light_gray": (235, 235, 235),
+    "warm_beige": (220, 230, 240),
     "cool_gray": (230, 228, 220),
     "charcoal": (35, 33, 30),
     "black": (12, 12, 12),
-    "deep crimson" :(79, 1, 1),
-    "Canary Yellow": (252, 243, 141),
-   "light spring green" :(110, 240, 130)
+    "deep crimson": (79, 1, 1),
+    "canary yellow": (252, 243, 141),
+    "light spring green": (110, 240, 130),
 }
 
 CATEGORY_MARGIN = {
@@ -55,15 +72,19 @@ def encode_image(image_path: str) -> str:
 
 
 def analyze_image_with_vlm(image_path: str) -> ImageAnalysis:
-    base64_image = encode_image(image_path)
-    message = HumanMessage(
-        content=[
-            {"type": "text", "text": ANALYSIS_PROMPT},
-            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
-        ]
-    )
-    structured_vlm = vlm.with_structured_output(ImageAnalysis, method="json_mode")
-    return structured_vlm.invoke([message])
+    try:
+        base64_image = encode_image(image_path)
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": ANALYSIS_PROMPT},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{base64_image}"}},
+            ]
+        )
+        structured_vlm = vlm.with_structured_output(ImageAnalysis, method="json_mode")
+        return structured_vlm.invoke([message])
+    except Exception as e:
+        print(f"[WARN] VLM image analysis failed: {e}. Using fallback defaults.")
+        return ImageAnalysis()
 
 
 def blur_score(cv_img: np.ndarray) -> float:
@@ -175,12 +196,13 @@ def run_enhancement(image_path: str) -> dict:
     if analysis.crop_needed:
         cutout_bgra = auto_crop_to_subject_cv(cutout_bgra)
 
-    bg_color = BG_COLOR_BY_TONE[analysis.bg_tone]
+    tone_key = analysis.bg_tone.lower() if analysis.bg_tone else "white"
+    bg_color = BG_COLOR_BY_TONE.get(tone_key, (250, 250, 250))
     composited_bgr = composite_on_background_cv(cutout_bgra, bg_color=bg_color)
 
     corrected = correct_brightness_contrast(composited_bgr, analysis.brightness_adjustment, analysis.contrast_adjustment)
-    if analysis.lighting_severity != "none":
-        clip_limit = CLAHE_CLIP_BY_SEVERITY[analysis.lighting_severity]
+    if analysis.lighting_severity and analysis.lighting_severity.lower() != "none":
+        clip_limit = CLAHE_CLIP_BY_SEVERITY.get(analysis.lighting_severity.lower(), 1.5)
         corrected = apply_clahe(corrected, clip_limit=clip_limit)
     corrected = sharpen(corrected)
 
@@ -201,6 +223,45 @@ def run_enhancement(image_path: str) -> dict:
         "blur_score": score,
         "warnings": warnings,
     }
+
+
+def load_audio_to_tensor(audio_input: Union[str, bytes], target_sr: int = TARGET_SAMPLE_RATE) -> torch.Tensor:
+    """
+    Decodes any audio format (ogg, mp3, wav, m4a, etc.) directly into a 16kHz
+    mono float32 torch.Tensor of shape (1, T) using ffmpeg, avoiding torchaudio/torchcodec DLL issues.
+    """
+    cmd = [
+        FFMPEG_BIN,
+        "-y",
+        "-i", audio_input if isinstance(audio_input, str) else "pipe:0",
+        "-f", "f32le",
+        "-ac", "1",
+        "-ar", str(target_sr),
+        "pipe:1"
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            input=None if isinstance(audio_input, str) else audio_input,
+            capture_output=True,
+            check=True
+        )
+        arr = np.frombuffer(proc.stdout, dtype=np.float32).copy()
+        if len(arr) == 0:
+            return torch.zeros((1, target_sr), dtype=torch.float32)
+        return torch.from_numpy(arr).unsqueeze(0)
+    except Exception as e:
+        print(f"[WARN] FFmpeg audio decoding failed ({e}). Attempting fallback decoding.")
+        if isinstance(audio_input, bytes):
+            buf = io.BytesIO(audio_input)
+            wav, sr = torchaudio.load(buf)
+        else:
+            wav, sr = torchaudio.load(audio_input)
+        wav = torch.mean(wav, dim=0, keepdim=True)
+        if sr != target_sr:
+            resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=target_sr)
+            wav = resampler(wav)
+        return wav
 
 
 class TranscriptionService:
@@ -225,32 +286,23 @@ class TranscriptionService:
                     cls._instance = cls()
         return cls._instance
 
-    def _prepare_waveform(self, wav: torch.Tensor, sr: int) -> torch.Tensor:
-        wav = torch.mean(wav, dim=0, keepdim=True)
-        if sr != TARGET_SAMPLE_RATE:
-            resampler = torchaudio.transforms.Resample(orig_freq=sr, new_freq=TARGET_SAMPLE_RATE)
-            wav = resampler(wav)
-        return wav.to(self.device)
-
-    def transcribe_bytes(self, audio_bytes: bytes, language: str, decoding: str = "rnnt") -> str:
-        buffer = io.BytesIO(audio_bytes)
-        wav, sr = torchaudio.load(buffer)
-        return self._transcribe(wav, sr, language, decoding)
-
-    def _transcribe(self, wav: torch.Tensor, sr: int, language: str, decoding: str) -> str:
+    def transcribe(self, audio_input: Union[str, bytes], language: str, decoding: str = "rnnt") -> str:
         if language not in SUPPORTED_LANGUAGES:
             raise ValueError(f"Unsupported language code '{language}'. Must be one of: {sorted(SUPPORTED_LANGUAGES)}")
         if decoding not in ("ctc", "rnnt"):
             raise ValueError(f"decoding must be 'ctc' or 'rnnt', got '{decoding}'")
-        wav = self._prepare_waveform(wav, sr)
+        wav = load_audio_to_tensor(audio_input, TARGET_SAMPLE_RATE).to(self.device)
         with torch.no_grad():
             transcription = self.model(wav, language, decoding)
         return transcription
 
+    def transcribe_bytes(self, audio_bytes: bytes, language: str, decoding: str = "rnnt") -> str:
+        return self.transcribe(audio_bytes, language=language, decoding=decoding)
 
-def transcribe_audio(audio_bytes: bytes, language: str, decoding: str = "rnnt") -> str:
+
+def transcribe_audio(audio_input: Union[str, bytes], language: str, decoding: str = "rnnt") -> str:
     service = TranscriptionService.get_service()
-    return service.transcribe_bytes(audio_bytes, language=language, decoding=decoding)
+    return service.transcribe(audio_input, language=language, decoding=decoding)
 
 def generate_listing_draft_llm(transcript: str) -> ListingDraft:
     prompt = DESCRIPTION_PROMPT_TEMPLATE.format(transcript=transcript)
@@ -262,7 +314,7 @@ def calculate_price(material_cost: float, labour_cost: float, category: str) -> 
     if material_cost < 0 or labour_cost < 0:
         raise ValueError("material_cost and labour_cost must be non-negative")
 
-    normalized_category = category.strip().lower()
+    normalized_category = (category or "").strip().lower()
     margin = CATEGORY_MARGIN.get(normalized_category, CATEGORY_MARGIN["other"])
 
     base_cost = material_cost + labour_cost
@@ -284,22 +336,40 @@ def enhance_image_node(state: ProductState) -> dict:
 
 
 def transcribe_audio_node(state: ProductState) -> dict:
-    with open(state["audio_path"], "rb") as f:
-        audio_bytes = f.read()
-    text = transcribe_audio(audio_bytes, language=state["language"], decoding="rnnt")
+    audio_path = state.get("audio_path")
+    try:
+        text = transcribe_audio(audio_path, language=state.get("language", "hi"), decoding="rnnt")
+    except Exception as e:
+        print(f"[WARN] Transcription failed: {e}. Defaulting to empty transcript.")
+        text = ""
     return {"transcribed_text": text}
 
 
 def generate_description_node(state: ProductState) -> dict:
-    draft = generate_listing_draft_llm(state["transcribed_text"])
+    transcript = state.get("transcribed_text", "")
+    try:
+        draft = generate_listing_draft_llm(transcript)
+    except Exception as e:
+        print(f"[WARN] LLM draft generation failed: {e}. Using fallback draft.")
+        draft = ListingDraft(
+            product_name_en="Handcrafted Artisan Product",
+            product_name_hi="हस्तनिर्मित उत्पाद",
+            description_en="Beautiful handcrafted product created with traditional techniques.",
+            description_hi="पारंपरिक तकनीकों से बना सुंदर हस्तशिल्प उत्पाद।",
+            tags=["handicraft", "handmade", "artisan", "traditional", "indian art"],
+            detected_category="other",
+            detected_material="traditional"
+        )
     return {"listing_draft": draft, "requires_approval": True}
 
 
 def predict_price_node(state: ProductState) -> dict:
+    listing = state.get("listing_draft")
+    category = getattr(listing, "detected_category", "other") if listing else "other"
     breakdown = calculate_price(
-        material_cost=state["material_cost"],
-        labour_cost=state["labour_cost"],
-        category=state["listing_draft"].detected_category,
+        material_cost=state.get("material_cost", 0.0),
+        labour_cost=state.get("labour_cost", 0.0),
+        category=category,
     )
     return {"predicted_price": breakdown.final_price, "pricing_breakdown": breakdown}
 
