@@ -25,7 +25,7 @@ import { COLORS } from '../constants/theme';
 import { useShop } from '../context/ShopContext';
 
 export default function ProfileScreen() {
-  const { products, wishlist } = useShop();
+  const { products, wishlist, orders } = useShop();
   const [activeTab, setActiveTab] = useState<'orders' | 'wishlist' | 'addresses'>('orders');
 
   const wishlistedProducts = products.filter((p) => wishlist.includes(p.id));
@@ -66,10 +66,10 @@ export default function ProfileScreen() {
           <View style={styles.profileActions}>
             <Pressable
               style={styles.studioBtn}
-              onPress={() => router.push('/add-product')}
+              onPress={() => router.push('/studio')}
             >
               <PlusCircle size={15} color="#FFFDF9" />
-              <Text style={styles.studioBtnText}>Artisan Studio</Text>
+              <Text style={styles.studioBtnText}>Artisan Studio & Inventory</Text>
             </Pressable>
 
             <Pressable
@@ -98,7 +98,7 @@ export default function ProfileScreen() {
                 activeTab === 'orders' && styles.tabItemTextActive,
               ]}
             >
-              Orders (2)
+              Orders ({orders.length})
             </Text>
           </Pressable>
 
@@ -142,83 +142,64 @@ export default function ProfileScreen() {
         {/* Tab Content */}
         {activeTab === 'orders' && (
           <View style={styles.tabContent}>
-            {/* Order 1 */}
-            <View style={styles.orderCard}>
-              <View style={styles.orderHeader}>
-                <View>
-                  <Text style={styles.orderNumber}>Order #KS-89421</Text>
-                  <Text style={styles.orderDate}>Placed on September 2, 2026</Text>
-                </View>
-                <View style={styles.statusPillTransit}>
-                  <Truck size={12} color={COLORS.primary} />
-                  <Text style={styles.statusTransitText}>In Transit</Text>
-                </View>
-              </View>
+            {orders.map((order) => {
+              const isDelivered = order.status === 'Delivered';
 
-              <View style={styles.orderItemRow}>
-                <Image
-                  source={{
-                    uri: 'https://images.unsplash.com/photo-1600369672770-985baa0e2c07?auto=format&fit=crop&w=200&q=80',
-                  }}
-                  style={styles.orderItemThumb}
-                />
-                <View style={styles.orderItemInfo}>
-                  <Text style={styles.orderItemName}>
-                    Hand-Loomed Merino & Raw Silk Throw Blanket
-                  </Text>
-                  <Text style={styles.orderItemMaker}>
-                    Maker: Devi Weavers Guild • Kullu Valley
-                  </Text>
-                  <Text style={styles.orderItemTracking}>
-                    Artisan Tracking: #INDPOST-772910
-                  </Text>
-                </View>
-              </View>
+              return (
+                <View key={order.id} style={styles.orderCard}>
+                  <View style={styles.orderHeader}>
+                    <View>
+                      <Text style={styles.orderNumber}>Order #{order.id}</Text>
+                      <Text style={styles.orderDate}>{order.date} • {order.city}</Text>
+                    </View>
+                    <View
+                      style={[
+                        styles.statusPillTransit,
+                        isDelivered && styles.statusPillDelivered,
+                      ]}
+                    >
+                      {isDelivered ? (
+                        <CheckCircle2 size={12} color="#1E40AF" />
+                      ) : (
+                        <Truck size={12} color={COLORS.primary} />
+                      )}
+                      <Text
+                        style={[
+                          styles.statusTransitText,
+                          isDelivered && styles.statusDeliveredText,
+                        ]}
+                      >
+                        {order.status}
+                      </Text>
+                    </View>
+                  </View>
 
-              <View style={styles.orderFooter}>
-                <Text style={styles.orderTotalLabel}>Total Paid:</Text>
-                <Text style={styles.orderTotalValue}>$110.00</Text>
-              </View>
-            </View>
+                  {order.items.map((item, idx) => (
+                    <View key={idx} style={styles.orderItemRow}>
+                      <View style={[styles.orderItemThumb, { alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.accentBg }]}>
+                        <Package size={22} color={COLORS.primary} />
+                      </View>
+                      <View style={styles.orderItemInfo}>
+                        <Text style={styles.orderItemName} numberOfLines={2}>
+                          {item.name}
+                        </Text>
+                        <Text style={styles.orderItemMaker}>
+                          Quantity: {item.quantity} × ${item.price}
+                        </Text>
+                        <Text style={styles.orderItemTracking}>
+                          Tracking ID: #{order.trackingId}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
 
-            {/* Order 2 */}
-            <View style={styles.orderCard}>
-              <View style={styles.orderHeader}>
-                <View>
-                  <Text style={styles.orderNumber}>Order #KS-74102</Text>
-                  <Text style={styles.orderDate}>Delivered on August 18, 2026</Text>
+                  <View style={styles.orderFooter}>
+                    <Text style={styles.orderTotalLabel}>Total Paid:</Text>
+                    <Text style={styles.orderTotalValue}>${order.total}.00</Text>
+                  </View>
                 </View>
-                <View style={styles.statusPillDelivered}>
-                  <CheckCircle2 size={12} color="#1E40AF" />
-                  <Text style={styles.statusDeliveredText}>Delivered</Text>
-                </View>
-              </View>
-
-              <View style={styles.orderItemRow}>
-                <Image
-                  source={{
-                    uri: 'https://images.unsplash.com/photo-1610701596007-11502861dcfa?auto=format&fit=crop&w=200&q=80',
-                  }}
-                  style={styles.orderItemThumb}
-                />
-                <View style={styles.orderItemInfo}>
-                  <Text style={styles.orderItemName}>
-                    Hand-Thrown Stoneware Pitcher with Ash Glaze
-                  </Text>
-                  <Text style={styles.orderItemMaker}>
-                    Maker: Rajesh Kumar & Kiln Collective • Khurja
-                  </Text>
-                  <Text style={styles.orderItemTracking}>
-                    Delivered to Brooklyn, NY
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.orderFooter}>
-                <Text style={styles.orderTotalLabel}>Total Paid:</Text>
-                <Text style={styles.orderTotalValue}>$48.00</Text>
-              </View>
-            </View>
+              );
+            })}
           </View>
         )}
 

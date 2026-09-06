@@ -39,8 +39,10 @@ import AppHeader from '../components/AppHeader';
 import BottomNav from '../components/BottomNav';
 import { COLORS } from '../constants/theme';
 import { CRAFT_CATEGORIES } from '../data/productsData';
+import { useShop } from '../context/ShopContext';
 
 export default function AddProductScreen() {
+  const { addProduct, showToast } = useShop();
   const [image, setImage] = useState<string>(
     'https://images.unsplash.com/photo-1600369672770-985baa0e2c07?auto=format&fit=crop&w=800&q=80'
   );
@@ -127,6 +129,32 @@ export default function AddProductScreen() {
       setGenerating(false);
       Alert.alert('AI Story Synthesized!', 'Your marketing brochure preview has been generated below.');
     }, 1200);
+  };
+
+  const handlePublishToStore = () => {
+    if (!name.trim()) {
+      Alert.alert('Missing Title', 'Please enter a craft product title.');
+      return;
+    }
+    const published = addProduct({
+      name,
+      category,
+      price: Number(price) || 45,
+      maker: makerName,
+      location,
+      material,
+      story,
+      image,
+      inStock: 12,
+    });
+    Alert.alert(
+      'Craft Published to Store!',
+      `"${published.name}" has been published to your store catalog and is now live for patrons worldwide.`,
+      [
+        { text: 'View in Studio', onPress: () => router.push('/studio') },
+        { text: 'Explore Catalog', onPress: () => router.push('/products') },
+      ]
+    );
   };
 
   const handleOpenFullBrochure = () => {
@@ -381,6 +409,15 @@ export default function AddProductScreen() {
               <Text style={styles.brochureActionText}>Share Story</Text>
             </Pressable>
           </View>
+
+          {/* Publish to Store Button */}
+          <Pressable
+            style={styles.publishBtn}
+            onPress={handlePublishToStore}
+          >
+            <CheckCircle2 size={18} color="#FFFDF9" />
+            <Text style={styles.publishBtnText}>Publish Craft to Live Store</Text>
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -390,6 +427,26 @@ export default function AddProductScreen() {
 }
 
 const styles = StyleSheet.create({
+  publishBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginTop: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  publishBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFDF9',
+  },
   screen: {
     flex: 1,
     backgroundColor: COLORS.background,

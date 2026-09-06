@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Image,
   Pressable,
@@ -42,6 +42,13 @@ export default function ProductDetailScreen() {
     : [product.image || product.img || ''];
 
   const [selectedImage, setSelectedImage] = useState(gallery[0] || product.image || product.img);
+
+  useEffect(() => {
+    const mainImg = product.gallery && product.gallery.length > 0
+      ? product.gallery[0]
+      : (product.image || product.img || '');
+    setSelectedImage(mainImg);
+  }, [product.id]);
 
   const isWishlisted = wishlist.includes(product.id);
   const originalPrice = product.originalPrice || product.original;

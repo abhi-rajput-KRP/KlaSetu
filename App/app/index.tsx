@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Image,
   Pressable,
@@ -24,7 +23,7 @@ import BottomNav from '../components/BottomNav';
 import ProductCard from '../components/ProductCard';
 import { COLORS } from '../constants/theme';
 import { useShop } from '../context/ShopContext';
-import { ARTISAN_MAKERS, CRAFT_CATEGORIES } from '../data/productsData';
+import { CRAFT_CATEGORIES } from '../data/productsData';
 
 export default function Home() {
   const { products, selectedCategory, setSelectedCategory } = useShop();
@@ -32,8 +31,6 @@ export default function Home() {
   const filteredProducts =
     selectedCategory === 'All Crafts'
       ? products
-      : selectedCategory === 'GI Certified'
-      ? products.filter((p) => p.badge?.includes('GI') || p.badge?.includes('Heritage'))
       : products.filter((p) => p.category === selectedCategory);
 
   return (
@@ -48,7 +45,7 @@ export default function Home() {
         <View style={styles.heroCard}>
           <View style={styles.heroBadgeRow}>
             <Sparkles size={13} color={COLORS.terracotta} />
-            <Text style={styles.heroBadgeText}>DIRECT FROM RURAL MASTERS • ZERO MIDDLEMEN</Text>
+            <Text style={styles.heroBadgeText}>CONNECTING THE INDIA WITH ITS ROOTS</Text>
           </View>
 
           <Text style={styles.heroTitle}>
@@ -57,7 +54,7 @@ export default function Home() {
           </Text>
 
           <Text style={styles.heroSubtitle}>
-            Discover one-of-a-kind stoneware pottery, handloomed Himalayan textiles, hand-carved wood, and heirloom brass art — delivered straight from local artisan workshops.
+            Discover one-of-a-kind stoneware pottery, handloomed textiles, hand-carved wood, and heirloom brass art — delivered straight from local artisan workshops to your doorstep.
           </Text>
 
           {/* Action CTAs */}
@@ -77,95 +74,12 @@ export default function Home() {
               <Text style={styles.heroSecondaryBtnText}>Join as an Artisan</Text>
             </Pressable>
           </View>
-
-          {/* Trust Features Strip */}
-          <View style={styles.trustGrid}>
-            <View style={styles.trustItem}>
-              <View style={styles.trustIconWrap}>
-                <ShieldCheck size={15} color={COLORS.primary} />
-              </View>
-              <View>
-                <Text style={styles.trustTitle}>100% Authentic</Text>
-                <Text style={styles.trustSub}>GI-tagged crafts</Text>
-              </View>
-            </View>
-
-            <View style={styles.trustItem}>
-              <View style={styles.trustIconWrap}>
-                <HeartHandshake size={15} color={COLORS.terracotta} />
-              </View>
-              <View>
-                <Text style={styles.trustTitle}>Fair Trade</Text>
-                <Text style={styles.trustSub}>85%+ direct to maker</Text>
-              </View>
-            </View>
-
-            <View style={styles.trustItem}>
-              <View style={styles.trustIconWrap}>
-                <Leaf size={15} color={COLORS.primary} />
-              </View>
-              <View>
-                <Text style={styles.trustTitle}>Eco-Friendly</Text>
-                <Text style={styles.trustSub}>Natural earth materials</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-
-        {/* Craft Discipline Categories Row */}
-        <View style={styles.categorySection}>
-          <View style={styles.categoryHeader}>
-            <View style={styles.categoryHeaderLeft}>
-              <Compass size={17} color={COLORS.primary} />
-              <Text style={styles.categoryHeaderTitle}>BROWSE BY CRAFT DISCIPLINE</Text>
-            </View>
-            <Pressable
-              onPress={() => router.push('/products')}
-              style={styles.viewAllRow}
-            >
-              <Text style={styles.viewAllText}>View All</Text>
-              <ArrowRight size={13} color={COLORS.primary} />
-            </Pressable>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.categoryPills}
-          >
-            {CRAFT_CATEGORIES.map((cat) => {
-              const isSelected = selectedCategory === cat;
-              return (
-                <Pressable
-                  key={cat}
-                  style={[
-                    styles.categoryPill,
-                    isSelected && styles.categoryPillActive,
-                  ]}
-                  onPress={() => setSelectedCategory(cat)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryPillText,
-                      isSelected && styles.categoryPillTextActive,
-                    ]}
-                  >
-                    {cat}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
         </View>
 
         {/* Picked For You Product Grid */}
         <View style={styles.productSection}>
           <View style={styles.sectionHeader}>
             <View>
-              <View style={styles.sectionKickerRow}>
-                <Flame size={13} color={COLORS.terracotta} />
-                <Text style={styles.sectionKicker}>CURATED SELECTION</Text>
-              </View>
               <Text style={styles.sectionTitle}>Picked For You</Text>
               <Text style={styles.sectionSub}>
                 Authentic handcrafted pieces ready to ship directly from heritage maker clusters.
@@ -180,45 +94,16 @@ export default function Home() {
               </View>
             ))}
           </View>
-        </View>
 
-        {/* Meet the Master Artisans Carousel */}
-        <View style={styles.artisanSection}>
-          <View style={styles.artisanHeader}>
-            <Text style={styles.artisanKicker}>THE HANDS BEHIND THE CRAFT</Text>
-            <Text style={styles.artisanTitle}>Meet Master Artisans</Text>
-            <Text style={styles.artisanSub}>
-              Every piece carries the fingerprint, lineage, and spirit of rural creators.
-            </Text>
+          <View style={styles.seeAllWrapper}>
+            <Pressable
+              style={styles.seeAllBtn}
+              onPress={() => router.push('/products')}
+            >
+              <Text style={styles.seeAllBtnText}>See all Products</Text>
+              <ArrowRight size={15} color={COLORS.primary} />
+            </Pressable>
           </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.artisanCards}
-          >
-            {ARTISAN_MAKERS.map((maker) => (
-              <View key={maker.id} style={styles.makerCard}>
-                <View style={styles.makerProfileRow}>
-                  <Image source={{ uri: maker.photo }} style={styles.makerPhoto} />
-                  <View style={styles.makerInfo}>
-                    <Text style={styles.makerName}>{maker.name}</Text>
-                    <Text style={styles.makerStudio}>{maker.studio}</Text>
-                    <Text style={styles.makerLocation}>{maker.location}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.makerQuoteBox}>
-                  <Text style={styles.makerQuote}>"{maker.quote}"</Text>
-                </View>
-
-                <View style={styles.makerFooter}>
-                  <Text style={styles.makerCraft}>{maker.craft}</Text>
-                  <Text style={styles.makerExp}>{maker.experience}</Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
         </View>
 
         {/* Fair Trade Impact Ecosystem Banner */}
@@ -509,78 +394,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  makerCard: {
-    width: 270,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  makerProfileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  makerPhoto: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderWidth: 2,
-    borderColor: COLORS.primary,
-  },
-  makerInfo: {
-    flex: 1,
-  },
-  makerName: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: COLORS.textPrimary,
-  },
-  makerStudio: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.terracotta,
-  },
-  makerLocation: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
-  },
-  makerQuoteBox: {
-    backgroundColor: COLORS.accentBg,
-    borderRadius: 12,
-    padding: 10,
-    marginTop: 10,
-  },
-  makerQuote: {
-    fontSize: 11,
-    fontStyle: 'italic',
-    color: COLORS.textPrimary,
-    lineHeight: 16,
-  },
-  makerFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    marginTop: 10,
-    paddingTop: 8,
-  },
-  makerCraft: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-  },
-  makerExp: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: COLORS.primary,
-  },
   impactCard: {
     backgroundColor: COLORS.primary,
     margin: 16,
@@ -643,6 +456,35 @@ const styles = StyleSheet.create({
   impactBtnText: {
     fontSize: 13,
     fontWeight: '800',
+    color: COLORS.primary,
+  },
+  heroImageCard: {
+    width: '100%',
+    height: 180,
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginTop: 14,
+    borderWidth: 2,
+    borderColor: '#FFFDF9',
+    backgroundColor: COLORS.sand,
+  },
+  heroImage: {
+    width: '100%',
+    height: '100%',
+  },
+  seeAllWrapper: {
+    alignItems: 'flex-end',
+    marginTop: 12,
+    paddingRight: 4,
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  seeAllBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
     color: COLORS.primary,
   },
 });

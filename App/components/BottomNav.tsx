@@ -13,7 +13,7 @@ export default function BottomNav() {
 
   const isHome = pathname === '/' || pathname === '';
   const isProducts = pathname === '/products';
-  const isStudio = pathname === '/add-product' || pathname === '/sellers_page';
+  const isStudio = pathname === '/studio' || pathname === '/add-product' || pathname === '/sellers_page';
   const isCart = pathname === '/cart';
   const isProfile = pathname === '/profile';
 
@@ -59,7 +59,7 @@ export default function BottomNav() {
 
       <Pressable
         style={styles.centerTab}
-        onPress={() => router.push('/add-product')}
+        onPress={() => router.push('/studio')}
       >
         <View style={styles.centerIconBg}>
           <PlusCircle size={22} color="#FFFDF9" strokeWidth={2.2} />

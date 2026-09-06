@@ -2,7 +2,7 @@ import React from 'react';
 import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Heart, Search, ShoppingBag, User } from 'lucide-react-native';
+import { Search, ShoppingBag, User } from 'lucide-react-native';
 import { COLORS } from '../constants/theme';
 import { useShop } from '../context/ShopContext';
 
@@ -13,7 +13,7 @@ interface AppHeaderProps {
 
 export default function AppHeader({ title }: AppHeaderProps) {
   const insets = useSafeAreaInsets();
-  const { cartCount, wishlist } = useShop();
+  const { cartCount } = useShop();
 
   return (
     <View style={[styles.headerContainer, { paddingTop: insets.top }]}>
@@ -30,23 +30,6 @@ export default function AppHeader({ title }: AppHeaderProps) {
             hitSlop={8}
           >
             <Search size={20} color={COLORS.textPrimary} />
-          </Pressable>
-
-          <Pressable
-            style={styles.iconButton}
-            onPress={() => router.push('/profile')}
-            hitSlop={8}
-          >
-            <Heart
-              size={20}
-              color={wishlist.length > 0 ? COLORS.terracotta : COLORS.textPrimary}
-              fill={wishlist.length > 0 ? COLORS.terracotta : 'none'}
-            />
-            {wishlist.length > 0 && (
-              <View style={[styles.badge, { backgroundColor: COLORS.terracotta }]}>
-                <Text style={styles.badgeText}>{wishlist.length}</Text>
-              </View>
-            )}
           </Pressable>
 
           <Pressable

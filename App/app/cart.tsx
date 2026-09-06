@@ -28,16 +28,18 @@ import AppHeader from '../components/AppHeader';
 import BottomNav from '../components/BottomNav';
 import { COLORS } from '../constants/theme';
 import { useShop } from '../context/ShopContext';
+import { Order } from '../types/product';
 
 export default function CartScreen() {
-  const { cart, updateQuantity, removeFromCart, cartSubtotal, cartCount } = useShop();
+  const { cart, updateQuantity, removeFromCart, cartSubtotal, cartCount, addOrder } = useShop();
 
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [appliedCode, setAppliedCode] = useState<string | null>(null);
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [confirmedOrderId, setConfirmedOrderId] = useState<string>('');
 
-  const shipping = cartSubtotal > 75 || cartSubtotal === 0 ? 0 : 8;
+  const shipping = cartSubtotal >= 50 || cartSubtotal === 0 ? 0 : 7;
   const directArtisanShare = (cartSubtotal * 0.85).toFixed(2);
   const finalTotal = Math.max(0, cartSubtotal - discount + shipping);
 
@@ -138,32 +140,6 @@ export default function CartScreen() {
             })}
           </View>
 
-          {/* Coupon Code Section */}
-          <View style={styles.couponCard}>
-            <View style={styles.couponInputWrap}>
-              <Tag size={16} color={COLORS.terracotta} />
-              <TextInput
-                style={styles.couponInput}
-                placeholder="Enter promo code (Try: ARTISAN10)"
-                placeholderTextColor={COLORS.textSecondary}
-                value={couponCode}
-                onChangeText={setCouponCode}
-                autoCapitalize="characters"
-              />
-              <Pressable style={styles.applyBtn} onPress={handleApplyCoupon}>
-                <Text style={styles.applyBtnText}>Apply</Text>
-              </Pressable>
-            </View>
-            {appliedCode && (
-              <View style={styles.appliedRow}>
-                <CheckCircle2 size={14} color={COLORS.primary} />
-                <Text style={styles.appliedText}>
-                  Code "{appliedCode}" applied (-${discount})
-                </Text>
-              </View>
-            )}
-          </View>
-
           {/* Order Summary Card */}
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Order Summary</Text>
@@ -206,7 +182,28 @@ export default function CartScreen() {
             {/* Checkout Button */}
             <Pressable
               style={styles.checkoutBtn}
-              onPress={() => setShowCheckoutModal(true)}
+              onPress={() => {
+                const orderId = `KS-${Math.floor(Math.random() * 89999 + 10000)}`;
+                const newOrder: Order = {
+                  id: orderId,
+                  customer: 'Helene Engels',
+                  email: 'helene.engels@example.com',
+                  city: 'Mumbai, Maharashtra',
+                  items: cart.map((c) => ({
+                    id: c.item.id,
+                    name: c.item.name,
+                    quantity: c.quantity,
+                    price: c.item.price,
+                  })),
+                  total: Math.round(finalTotal),
+                  status: 'Processing',
+                  date: 'Today, 2026',
+                  trackingId: 'PENDING',
+                };
+                addOrder(newOrder);
+                setConfirmedOrderId(orderId);
+                setShowCheckoutModal(true);
+              }}
             >
               <ShieldCheck size={18} color="#FFFDF9" />
               <Text style={styles.checkoutBtnText}>
@@ -215,9 +212,9 @@ export default function CartScreen() {
             </Pressable>
 
             {/* Free Shipping Progress */}
-            {cartSubtotal < 75 && (
+            {cartSubtotal < 50 && (
               <Text style={styles.freeShippingTip}>
-                Add ${(75 - cartSubtotal).toFixed(2)} more for FREE direct shipping!
+                Add ${(50 - cartSubtotal).toFixed(2)} more for FREE direct shipping!
               </Text>
             )}
           </View>
@@ -253,7 +250,7 @@ export default function CartScreen() {
             </View>
             <Text style={styles.modalTitle}>Order Confirmed!</Text>
             <Text style={styles.modalSub}>
-              Thank you for supporting traditional Indian artisans. Your order #KS-{Math.floor(Math.random() * 89999 + 10000)} has been placed directly with the maker guilds.
+              Thank you for supporting traditional Indian artisans. Your order {confirmedOrderId || '#KS-89421'} has been placed directly with the maker guilds.
             </Text>
 
             <View style={styles.modalImpactBadge}>
