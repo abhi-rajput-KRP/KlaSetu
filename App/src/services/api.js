@@ -55,7 +55,7 @@ export const resolveImageUrl = (path) => {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  const cleanPath = path;
+  const cleanPath = path.replace(/^\/+/, '');
   return `${API_BASE_URL}/${cleanPath}`;
 };
 
