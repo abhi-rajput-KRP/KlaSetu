@@ -1,4 +1,4 @@
-import os
+from utils.settings import settings
 import json
 import base64
 import threading
@@ -8,15 +8,17 @@ import torch
 import torchaudio
 from dotenv import load_dotenv
 from langgraph.graph import StateGraph, END
-from config import llm, vlm, REMBG_MODEL_NAME, TARGET_SAMPLE_RATE, MODEL_NAME
-from pipeline.prompts import ANALYSIS_PROMPT, DESCRIPTION_PROMPT_TEMPLATE
-from pipeline.schema import ImageAnalysis, ListingDraft, PricingBreakdown, ProductState
+from AI.config import llm, vlm, REMBG_MODEL_NAME, TARGET_SAMPLE_RATE, MODEL_NAME
+from AI.pipeline.prompts import ANALYSIS_PROMPT, DESCRIPTION_PROMPT_TEMPLATE
+from AI.pipeline.schema import ImageAnalysis, ListingDraft, PricingBreakdown, ProductState
 from langchain_core.messages import HumanMessage
 from rembg import remove
 from transformers import AutoModel
 from huggingface_hub import login
 import io
+import os
 
+os.add_dll_directory(r"C:\Users\ABHI RAJPUT\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build\bin")
 
 load_dotenv()
 
@@ -206,7 +208,7 @@ class TranscriptionService:
     _lock = threading.Lock()
 
     def __init__(self):
-        hf_token = os.environ.get("HF_TOKEN")
+        hf_token = settings.HF_TOKEN
         if hf_token:
             login(token=hf_token)
 

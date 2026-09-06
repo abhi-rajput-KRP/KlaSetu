@@ -10,7 +10,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from pipeline.build_graph import compiled_graph, calculate_price, get_rembg_session, TranscriptionService, SUPPORTED_LANGUAGES  # adjust import to your filename
+from AI.pipeline.build_graph import compiled_graph, calculate_price, get_rembg_session, TranscriptionService, SUPPORTED_LANGUAGES  # adjust import to your filename
 
 from contextlib import asynccontextmanager
 

@@ -1,20 +1,18 @@
-import os
-from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
-
+from utils.settings import settings
+from dotenv import load_dotenv
 
 load_dotenv()
-GEMINI_API_KEY= os.getenv("GEMINI_API_KEY")
-FEATHERLESS_API_KEY= os.getenv("FEATHERLESS_API_KEY")
-GROQ_API_KEY= os.getenv("GROQ_API_KEY")
+
+FEATHERLESS_API_KEY= settings.FEATHERLESS_API_KEY
+GROQ_API_KEY= settings.GROQ_API_KEY
 
 if not FEATHERLESS_API_KEY:
-    raise RuntimeError("Missng FEATHERLESS_API_KEY in the environment")
+    raise RuntimeError("Missing FEATHERLESS_API_KEY in the environment")
 
 if not GROQ_API_KEY:
-    raise RuntimeError("Missng GROQ_API_KEY in the environment")
+    raise RuntimeError("Missing GROQ_API_KEY in the environment")
 
 vlm = ChatOpenAI(
     api_key=FEATHERLESS_API_KEY,
